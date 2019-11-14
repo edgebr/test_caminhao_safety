@@ -5,6 +5,7 @@ import queue
 import serial
 import math
 import sys
+import traceback
 from termcolor import colored
 
 acc = queue.Queue()
@@ -98,12 +99,14 @@ try:
     window = 10
     # acc_graph = VectorGraph('Aceleracao', window, -1.2, 1.2, 100, get_acc_data)
     # gyro_graph = VectorGraph('Giroscopio', window, -1, 1, 100, get_gyro_data)
-    acc_filtered_graph = VectorGraph('Aceleracao - ' + sys.argv[3], window, -1.2, 1.2, 100, get_acc_filtered_data)
-    gyro_filtered_graph = VectorGraph('Giroscopio - ' + sys.argv[3], window, -1, 1, 100, get_gyro_filtered_data)
+    acc_name = 'Aceleracao - ' + (sys.argv[3] if len(sys.argv) >= 4 else '')
+    gyro_name = 'Giroscopio - ' + (sys.argv[3] if len(sys.argv) >= 4 else '')
+    acc_filtered_graph = VectorGraph(acc_name, window, -1.2, 1.2, 100, get_acc_filtered_data)
+    gyro_filtered_graph = VectorGraph(gyro_name, window, -1, 1, 100, get_gyro_filtered_data)
 
     acc_filtered_graph.fig.canvas.mpl_connect('key_press_event', handle_key)
     plt.show()
 except Exception as e:
-    print(e)
+    print(traceback.format_exc())
 finally:
     csv_file.close()
