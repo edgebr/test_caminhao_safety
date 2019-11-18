@@ -5,13 +5,14 @@ import queue
 import serial
 import math
 import sys
-import traceback
 from termcolor import colored
 
 acc = queue.Queue()
 gyro = queue.Queue()
 acc_filtered = queue.Queue()
 gyro_filtered = queue.Queue()
+manhattan = queue.Queue()
+online = queue.Queue()
 
 
 def apppend_to_queues(queues: dict, line: bytes):
@@ -23,6 +24,8 @@ def apppend_to_queues(queues: dict, line: bytes):
         queues['gyro'].put((datas[3], datas[4], datas[5]))
         queues['acc_filtered'].put((datas[6], datas[7], datas[8]))
         queues['gyro_filtered'].put((datas[9], datas[10], datas[11]))
+        queues['manhattan'].put(datas[12])
+        queues['online'].put(datas[13])
     except UnicodeDecodeError:
         pass
 
@@ -75,10 +78,20 @@ def get_gyro_filtered_data(frame):
     return (float(data_vec[0]), float(data_vec[1]), float(data_vec[2]))
 
 
+def get_manhattan_data(frame):
+    data = manhattan.get()
+    return (float(data), 0, 0)
+
+
+def get_online_data(frame):
+    data = online.get()
+    return (0, float(data), 0)
+
+
 try:
     csv_filename = sys.argv[1]
     csv_file = open(csv_filename + '.csv', 'w')
-    csv_file.write('acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z, f_acc_x, f_acc_y, f_acc_z, f_gyro_x, f_gyro_y, f_gyro_z\n')
+    csv_file.write('acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z, f_acc_x, f_acc_y, f_acc_z, f_gyro_x, f_gyro_y, f_gyro_z, manhattan, online\n')
 
     def handle_key(event):
         global csv_file
@@ -94,19 +107,23 @@ try:
         'gyro': gyro,
         'acc_filtered': acc_filtered,
         'gyro_filtered': gyro_filtered,
+        'online': online,
+        'manhattan': manhattan
     }, sys.argv[2], csv_file)
 
     window = 10
+    name = sys.argv[3] if len(sys.argv) >= 4 else ''
     # acc_graph = VectorGraph('Aceleracao', window, -1.2, 1.2, 100, get_acc_data)
     # gyro_graph = VectorGraph('Giroscopio', window, -1, 1, 100, get_gyro_data)
-    acc_name = 'Aceleracao - ' + (sys.argv[3] if len(sys.argv) >= 4 else '')
-    gyro_name = 'Giroscopio - ' + (sys.argv[3] if len(sys.argv) >= 4 else '')
-    acc_filtered_graph = VectorGraph(acc_name, window, -1.2, 1.2, 100, get_acc_filtered_data)
-    gyro_filtered_graph = VectorGraph(gyro_name, window, -1, 1, 100, get_gyro_filtered_data)
+    acc_filtered_graph = VectorGraph('Aceleracao - ' + name, window, -1.2, 1.2, 100, get_acc_filtered_data)
+    gyro_filtered_graph = VectorGraph('Giroscopio - ' + name, window, -1, 1, 100, get_gyro_filtered_data)
+    manhattan_graph = VectorGraph('Manhattan - ' + name, window, -0.1, 1, 100, get_manhattan_data)
+    online_graph = VectorGraph('Online - ' + name, window, -180.5, 180.5, 100, get_online_data)
+
 
     acc_filtered_graph.fig.canvas.mpl_connect('key_press_event', handle_key)
     plt.show()
 except Exception as e:
-    print(traceback.format_exc())
+    print(e)
 finally:
     csv_file.close()
